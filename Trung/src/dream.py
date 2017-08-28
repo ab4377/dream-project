@@ -7,7 +7,7 @@ import math
 import json
 
 
-def find_forward_backward_direction(motion_df, delta_theta, visualize = False, visualize_path = ""):
+def find_forward_backward_direction(motion_df, target_delta_theta, visualize = False, visualize_path =""):
     """
     When given a time series of acceleration and gravity vectors, this function finds the backward-forward
     direction by trying different directions in the plane orthogonal to the gravity vector. The direction that
@@ -15,9 +15,9 @@ def find_forward_backward_direction(motion_df, delta_theta, visualize = False, v
     be chosen as the forward-backward direction. In short, this algorithm assumes that most of the distance traveled
     comes from the forward-backward direction and tries to maximize that distance.
 
-    :param motion_df: A Pandas data frame containing a time series of acceleration and gravity vectors
-    :param delta_theta: The step size of the rotation angle when trying out the different directions in the plane
-    orthogonal to gravity vector.
+    :param motion_df: A Pandas data frame containing a time series of acceleration and gravity vectors.
+    :param target_delta_theta: The target resolution of the rotation angle (the true theta angle that maximizes distance
+    will be within target_delta_theta of the theta angle found by the algorithm).
     :param visualize: Whether the resulting time series of velocities will be visualized in a graph.
     :param visualize_path: The path where the graphs will be saved. If empty, these graphs will be shown interactively
     :return: A tuple (max_fb_vect, max_theta, max_distance), where max_fb_vect is the backward-forward direction found
@@ -51,64 +51,71 @@ def find_forward_backward_direction(motion_df, delta_theta, visualize = False, v
     max_distance = 0
     max_fb_vect = init_fb_vect
     max_theta = 0
+    delta_theta = np.pi / 3
+    start_theta = 0
+    end_theta = 2 * np.pi
 
-    for theta in np.linspace(0, 2*np.pi, num=math.ceil(np.pi/delta_theta)):
-        R_matrix = utils.rotate_3d_matrix(theta, 2)
-        fb_vect = np.array(np.linalg.multi_dot([C_matrix, R_matrix, C_inv_matrix, init_fb_vect[0]]))
-        side_vect = np.array(np.linalg.multi_dot([C_matrix, R_matrix, C_inv_matrix, init_side_vect[0]]))
-        velocities = []
-        velocities_sideway = []
-        curr_velocity = 0
-        curr_velocity_sideway = 0
-        distance = 0
-        for row in range(motion_df.shape[0]):
-            if (row == 0):
-                continue
-            x_a = motion_df.loc[row, 'x']
-            y_a = motion_df.loc[row, 'y']
-            z_a = motion_df.loc[row, 'z']
+    while delta_theta > target_delta_theta:
+        for theta in utils.circular_range(start_theta, end_theta, delta_theta):
+            R_matrix = utils.rotate_3d_matrix(theta, 2)
+            fb_vect = np.array(np.linalg.multi_dot([C_matrix, R_matrix, C_inv_matrix, init_fb_vect[0]]))
+            side_vect = np.array(np.linalg.multi_dot([C_matrix, R_matrix, C_inv_matrix, init_side_vect[0]]))
+            velocities = []
+            velocities_sideway = []
+            curr_velocity = 0
+            curr_velocity_sideway = 0
+            distance = 0
+            for row in range(motion_df.shape[0]):
+                if (row == 0):
+                    continue
+                x_a = motion_df.loc[row, 'x']
+                y_a = motion_df.loc[row, 'y']
+                z_a = motion_df.loc[row, 'z']
 
-            acceleration_vect = np.array([[x_a, y_a, z_a]])
-            forward_acceleration = utils.project(acceleration_vect, fb_vect)
-            sideway_acceleration = utils.project(acceleration_vect, side_vect)
+                acceleration_vect = np.array([[x_a, y_a, z_a]])
+                forward_acceleration = utils.project(acceleration_vect, fb_vect)
+                sideway_acceleration = utils.project(acceleration_vect, side_vect)
 
-            time = motion_df.loc[row, 'timestamp'] - motion_df.loc[row - 1, 'timestamp']
-            curr_velocity += forward_acceleration * time
-            curr_velocity_sideway += sideway_acceleration * time
+                time = motion_df.loc[row, 'timestamp'] - motion_df.loc[row - 1, 'timestamp']
+                curr_velocity += forward_acceleration * time
+                curr_velocity_sideway += sideway_acceleration * time
 
-            velocities.append(curr_velocity)
-            velocities_sideway.append(curr_velocity_sideway)
+                velocities.append(curr_velocity)
+                velocities_sideway.append(curr_velocity_sideway)
 
-            if curr_velocity > 0:
-                distance += curr_velocity
-            else:
-                if distance > max_distance:
-                    max_distance = distance
-                    max_theta = theta
-                    max_fb_vect = fb_vect
-                    distance = 0
-
-        if distance > max_distance:
-            max_distance = distance
-            max_theta = theta
-            max_fb_vect = fb_vect
-
-        if visualize:
-            time_stamps = motion_df.loc[:, 'timestamp'].tolist()
-            time_stamps.pop(0)
-            fig, ax = plt.subplots()
-            ax.plot(time_stamps, velocities, label='Forward-backward')
-            ax.plot(time_stamps, velocities_sideway, label='Sideways')
-            ax.legend(loc='lower right')
-
-            if visualize_path == "":
-                plt.show()
-            else:
-                if os.path.exists(visualize_path):
-                    plt.savefig(visualize_path + '/' + str(theta) + '.png')
-                    plt.close()
+                if curr_velocity > 0:
+                    distance += curr_velocity
                 else:
-                    raise IOError('visualize_path directory does not exist')
+                    if distance > max_distance:
+                        max_distance = distance
+                        max_theta = theta
+                        max_fb_vect = fb_vect
+                        distance = 0
+
+            if distance > max_distance:
+                max_distance = distance
+                max_theta = theta
+                max_fb_vect = fb_vect
+
+            if visualize:
+                time_stamps = motion_df.loc[:, 'timestamp'].tolist()
+                time_stamps.pop(0)
+                fig, ax = plt.subplots()
+                ax.plot(time_stamps, velocities, label='Forward-backward')
+                ax.plot(time_stamps, velocities_sideway, label='Sideways')
+                ax.legend(loc='lower right')
+
+                if visualize_path == "":
+                    plt.show()
+                else:
+                    if os.path.exists(visualize_path):
+                        plt.savefig(visualize_path + '/' + str(theta) + '.png')
+                        plt.close()
+                    else:
+                        raise IOError('visualize_path directory does not exist')
+        start_theta = max_theta - delta_theta
+        end_theta = max_theta + delta_theta
+        delta_theta = (end_theta - start_theta) / 6
 
     return max_fb_vect, max_theta, max_distance
 
