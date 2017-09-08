@@ -18,14 +18,15 @@ def get_data(row, record_id, folder, syn):
         os.makedirs(download_dir)
 
     for column in columns:
+        if os.path.exists(download_dir + '/' + column + '.csv'):
+            continue
         try:
             print 'Downloading ' + column + ' for ' + record_id + '...'
             file_path = syn.downloadTableFile(table='syn10146553', column=column, downloadLocation=download_dir, rowId=row, versionNumber=1)
-            dream.elative_to_absolute_coordinates(file_path, download_dir + '/' + column + '.csv')
+            dream.felative_to_absolute_coordinates_file(file_path, download_dir + '/' + column + '.csv')
             os.remove(file_path)
         except Exception as e:
             print e
-            raise
 
 def main():
     parser = argparse.ArgumentParser(description='Download and process data.')
