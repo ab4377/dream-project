@@ -1,7 +1,7 @@
 import synapseclient
 import os
 import argparse
-from relativeToAbsoluteCoordinates import relative_to_absolute_coordinates
+import dream
 import pandas as pd
 from multiprocessing import Pool
 
@@ -21,7 +21,7 @@ def get_data(row, record_id, folder, syn):
         try:
             print 'Downloading ' + column + ' for ' + record_id + '...'
             file_path = syn.downloadTableFile(table='syn10146553', column=column, downloadLocation=download_dir, rowId=row, versionNumber=1)
-            relative_to_absolute_coordinates(file_path, download_dir + '/' + column + '.csv')
+            dream.elative_to_absolute_coordinates(file_path, download_dir + '/' + column + '.csv')
             os.remove(file_path)
         except Exception as e:
             print e
