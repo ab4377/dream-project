@@ -1,0 +1,140 @@
+import pandas as pd
+import numpy as np
+import utils
+import os
+import matplotlib.pyplot as plt
+import math
+import json
+
+
+#######################################################################################################################
+
+
+def find_forward_backward_direction(motion_df, target_delta_theta, visualize = False, visualize_path =""):
+    """
+    When given a time series of acceleration and gravity vectors, this function finds the backward-forward
+    direction by trying different directions in the plane orthogonal to the gravity vector. The direction that
+    maximizes the distance traveled in the forward-backward direction when chosen as the forward-backward direction will
+    be chosen as the forward-backward direction. In short, this algorithm assumes that most of the distance traveled
+    comes from the forward-backward direction and tries to maximize that distance.
+
+    :param motion_df: A Pandas data frame containing a time series of acceleration and gravity vectors.
+    :param target_delta_theta: The target precision of the rotation angle (the true theta angle that maximizes distance
+    will be within target_delta_theta of the theta angle found by the algorithm).
+    :param visualize: Whether the resulting time series of velocities will be visualized in a graph.
+    :param visualize_path: The path where the graphs will be saved. If empty, these graphs will be shown interactively
+    :return: A tuple (max_fb_vect, max_theta, max_distance), where max_fb_vect is the backward-forward direction found
+    by the algorithm, max_theta is rotation angle of the backward-forward direction found compared to the initial
+    backward-forward direction, and max_distance is the distance traveled in the backward-forward direction found.
+    """
+    init_fb_vect, init_side_vect, C_matrix, acceleration_vects, times = init_vars(motion_df)
+    (max_distance, max_fb_vect, max_theta, delta_theta, start_theta, end_theta) = (0, init_fb_vect, 0, np.pi / 3, 0, 2 * np.pi)
+
+    while delta_theta > target_delta_theta:
+        thetas = utils.circular_range(start_theta + delta_theta, end_theta, delta_theta)
+        fb_vects = [utils.rotate_3d(init_fb_vect, C_matrix, theta, 2) for theta in thetas]
+        distances, velocities = zip(*(calculate_distance_for_fb_direction(acceleration_vects, times, fb_vect)
+                                      for fb_vect in fb_vects))
+        max_ind, start_theta, end_theta, delta_theta = recalculate_theta(distances, thetas, delta_theta)
+        max_fb_vect, max_theta, max_distance = (fb_vects[max_ind], thetas[max_ind], distances[max_ind])
+        if visualize:
+            visualize_velocities(times, velocities[max_ind], thetas[max_ind], visualize_path)
+
+    return max_fb_vect, max_theta, max_distance
+
+
+def init_vars(motion_df):
+    # Initialize forward-backward direction by picking a random direction in
+    # the plane perpendicular to the z-axis (indicated by the gravity vector).
+    # For each rotation of theta radians of the initial direction, find
+    # longest sequence of positive velocity and calculate distance.
+    gravity_vect = np.array([[motion_df.loc[0, dim] for dim in ['gx', 'gy', 'gz']]])
+    (x_g, y_g, z_g) = tuple(gravity_vect[0, dim] for dim in [0, 1, 2])
+    init_fb_vect = utils.normalize_vect(np.array([[y_g / x_g, -1, 0]]))
+    init_side_vect = utils.normalize_vect(np.array([[x_g, y_g, -(x_g ** 2 + y_g ** 2) / z_g]]))
+    C_matrix = np.column_stack((init_side_vect[0], init_fb_vect[0], gravity_vect[0]))
+    acceleration_vects = np.array([[motion_df.loc[row, dim] for dim in ['x', 'y', 'z']]
+                                   for row in range(1, motion_df.shape[0])])
+    times = np.diff(np.array(motion_df['timestamp']))
+    return init_fb_vect, init_side_vect, C_matrix, acceleration_vects, times
+
+
+def calculate_distance_for_fb_direction(acceleration_vects, times, fb_vect):
+    forward_acceleration_vects = utils.project_array(acceleration_vects, fb_vect)
+    velocities = np.cumsum(forward_acceleration_vects[:, 0] * times)
+    longest_positive_stretch = utils.find_longest_positive_stretch(velocities)
+    if longest_positive_stretch.size == 0:
+        return 0, velocities
+    distance = np.cumsum(velocities[longest_positive_stretch] * times[longest_positive_stretch])[-1]
+    return distance, velocities
+
+
+
+def recalculate_theta(distances, thetas, old_delta_theta):
+    # Take the theta that maximizes distance and search for
+    # a better resolution by looking at the range
+    # (max_theta - old_delta_theta, max_theta + old_delta_theta)
+    max_ind = np.argmax(distances)
+    new_start_theta = thetas[max_ind] - old_delta_theta
+    new_end_theta = thetas[max_ind] + old_delta_theta
+    new_delta_theta = (new_end_theta - new_start_theta) / 6
+    return max_ind, new_start_theta, new_end_theta, new_delta_theta
+
+
+def visualize_velocities(time_stamps, velocities_fb, theta, visualize_path=""):
+    time_stamps = time_stamps.tolist()
+    time_stamps.pop(0)
+    fig, ax = plt.subplots()
+    ax.plot(time_stamps, velocities_fb, label='Forward-backward')
+    ax.legend(loc='lower right')
+
+    if visualize_path == "":
+        plt.show()
+    else:
+        if os.path.exists(visualize_path):
+            plt.savefig(visualize_path + '/' + str(theta) + '.png')
+            plt.close()
+        else:
+            raise IOError('visualize_path directory does not exist')
+
+
+#######################################################################################################################
+
+def relative_to_absolute_coordinates_file(input_file, output_file):
+    """
+    Given an input file containing device motion information (time series of acceleration, gravity, attitude, etc., as
+    defined in the Synapse data description), outputs a csv file containing the acceleration and gravity in absolute
+    coordinates.
+    :param input_file: The input file containing device motion information.
+    :param output_file: The output file, a csv file containing a time series of acceleration and gravity in absolute
+    coordinates.
+    :return: No return value
+    """
+    data = json.load(open(input_file))
+    results = np.empty(0)
+    for item in data:
+        result = relative_to_absolute_coordinates_item(item)
+        results = result if results.size == 0 else np.vstack((results, result))
+
+    results = pd.DataFrame(results, columns=['timestamp', 'x', 'y', 'z', 'gx', 'gy', 'gz'])
+    results.to_csv(output_file)
+
+
+def relative_to_absolute_coordinates_item(item):
+    a_vector = np.array([item.get('userAcceleration').get(a) for a in ['x', 'y', 'z']])
+    g_vector = np.array([item.get('attitude').get(g) for g in ['x', 'y', 'z']])
+    (a, b, c, d) = tuple(item.get('attitude').get(att) for att in ['x', 'y', 'z', 'w'])
+    rotation_matrix = calculate_rotation_matrix(a, b, c, d)
+
+    abs_a = np.dot(rotation_matrix, a_vector)
+    abs_g = np.dot(rotation_matrix, g_vector)
+
+    time_stamp = np.array([item.get('timestamp')])
+    return np.concatenate((time_stamp, abs_a, abs_g))
+
+
+def calculate_rotation_matrix(a, b, c, d):
+    return np.array([[a ** 2 + b ** 2 - c ** 2 - d ** 2, 2 * b * c - 2 * a * d, 2 * b * d + 2 * a * c],
+                     [2 * b * c + 2 * a * d, a ** 2 - b ** 2 + c ** 2 - d ** 2, 2 * c * d - 2 * a * b],
+                     [2 * b * d - 2 * a * c, 2 * c * d + 2 * a * b, a ** 2 - b ** 2 - c ** 2 + d ** 2]])
+
