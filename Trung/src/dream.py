@@ -5,11 +5,86 @@ import os
 import matplotlib.pyplot as plt
 import math
 import json
+import pyhsmm
+import pyhsmm.basic.distributions as distributions
+from pyhsmm.util.text import progprint_xrange
 
 
 #######################################################################################################################
+def fit_hmm(data, max_num_states=25, max_duration=100, num_iter=200, obs_dist=None, dur_dist=None,
+            print_prog=False):
+
+    obs_dim = data.shape[1]
+
+    obs_hypparams = {'mu_0': np.zeros(obs_dim),
+                     'sigma_0': np.eye(obs_dim),
+                     'kappa_0': 0.3,
+                     'nu_0': obs_dim + 5}
+    dur_hypparams = {'alpha_0': 2*30,
+                     'beta_0': 2}
+
+    obs_distns = [distributions.Gaussian(**obs_hypparams) for state in range(max_num_states)]
+    dur_distns = [distributions.PoissonDuration(**dur_hypparams) for state in range(max_num_states)]
+
+    posteriormodel = pyhsmm.models.WeakLimitHDPHSMM(
+        alpha=6., gamma=6.,
+        init_state_concentration=4.,
+        obs_distns=obs_distns,
+        dur_distns=dur_distns)
+
+    posteriormodel.add_data(data, trunc=max_duration)
+
+    if print_prog:
+        iter_range = progprint_xrange(num_iter)
+    else:
+        iter_range = xrange(num_iter)
+
+    for idx in iter_range:
+        posteriormodel.resample_model()
+
+    return posteriormodel
 
 
+def initialize_distns(max_num_states, obs_dim):
+    hypparams = {'mu_0': np.zeros(obs_dim),
+                     'sigma_0': np.eye(obs_dim),
+                     'kappa_0': 0.3,
+                     'nu_0': obs_dim + 5}
+
+    distns = [distributions.Gaussian(**hypparams) for state in range(max_num_states)]
+
+    return distns
+
+
+def extract_unique_seqs(seq):
+    copy_seq = np.copy(seq)
+    states = np.unique(copy_seq)
+    [np.place(copy_seq, seq == states[i], i) for i in range(len(states))]
+    return copy_seq
+
+
+def count_states(seq):
+    # note, the state marker has to be in consecutive value, e.g 0, 1, 2, 3, not
+    # 2, 16, 21
+    counts = np.array([np.sum(np.where(seq == i, [1], [0])) for i in range(len(np.unique(seq)))])
+    return counts
+
+
+def find_stride_durations(seq, dur):
+    counts = count_states(seq)
+    med = np.median(counts)
+    repeating_state = np.argmin(np.absolute(counts - med))
+    start = np.where(seq == repeating_state)[1]
+    stride_durations = [np.sum(dur[start[i-1]:start[i]:1]) for i in range(1, len(start))]
+
+    return stride_durations
+
+
+def get_slices_for_state(seq, dur, state, data):
+    slice_starts = np.where(seq == state)[1]
+    slices = [data[slice_start:slice_start + dur[i]:1] ]
+
+#######################################################################################################################
 def find_forward_backward_direction(motion_df, target_delta_theta, visualize = False, visualize_path =""):
     """
     When given a time series of acceleration and gravity vectors, this function finds the backward-forward
@@ -138,3 +213,14 @@ def calculate_rotation_matrix(a, b, c, d):
                      [2 * b * c + 2 * a * d, a ** 2 - b ** 2 + c ** 2 - d ** 2, 2 * c * d - 2 * a * b],
                      [2 * b * d - 2 * a * c, 2 * c * d + 2 * a * b, a ** 2 - b ** 2 - c ** 2 + d ** 2]])
 
+#######################################################################################################################
+
+def convert_to_forward_backward_coordinates(df, fb_vect):
+    gravity_vect = np.array(df.loc[0, ['gx', 'gy', 'gz']].tolist())
+    sideway_vect = np.cross(fb_vect, gravity_vect)
+
+    fb_acc = utils.project_array(df[['x', 'y', 'z']], fb_vect)
+    updown_acc = utils.project_array(df[['x', 'y', 'z']], gravity_vect)
+    sideway_acc = utils.project_array(df[['x', 'y', 'z']], sideway_vect)
+    d = {'timestamp': df['timestamp'], 'x': fb_acc, 'y': sideway_acc, 'z': updown_acc}
+    return pd.DataFrame(d)
