@@ -9,7 +9,7 @@ def main():
 	INPUT_WALKING_ACTIVITY_TABLE_SYNID = "syn10146553"
 	actv_walking_syntable = syn.tableQuery(('SELECT * FROM {0}').format(INPUT_WALKING_ACTIVITY_TABLE_SYNID))
 	actv_walking = actv_walking_syntable.asDataFrame()
-	actv_walking[["recordId","medTimepoint"]].to_csv('meta-data.csv',index=False,header=True)
+	actv_walking[["recordId","phoneInfo","medTimepoint"]].to_csv('meta-data.csv',index=False,header=True)
 	print "Done!"
 	
 if __name__ == '__main__':

@@ -358,9 +358,9 @@ for idx,x in enumerate(X):
         row = {}
         row["recordId"] = recordIds[idx]
         row["axis"] = "x"
-        d = utilities.get_step_stride_frequency(global_peaks_grouped_by_key_x, x1, key,mu=np.array([frequency_x_mu,amplitude_x_mu,half_energies_x_mu]),
-                                                sd=np.array([frequency_x_sd,amplitude_x_sd,half_energies_x_sd]))
-        #d = utilities.get_step_stride_frequency(global_peaks_grouped_by_key_x, x1, key,mu=np.array([0,0,0]),sd=np.array([1,1,1]))
+        #d = utilities.get_step_stride_frequency(global_peaks_grouped_by_key_x, x1, key,mu=np.array([frequency_x_mu,amplitude_x_mu,half_energies_x_mu]),
+        #                                        sd=np.array([frequency_x_sd,amplitude_x_sd,half_energies_x_sd]))
+        d = utilities.get_step_stride_frequency(global_peaks_grouped_by_key_x, x1, key,mu=np.array([0,0,0]),sd=np.array([1,1,1]))
         row.update(d)
         rows.append(row)
     #print rows
@@ -369,9 +369,9 @@ for idx,x in enumerate(X):
         row = {}
         row["recordId"] = recordIds[idx]
         row["axis"] = "y"
-        d = utilities.get_step_stride_frequency(global_peaks_grouped_by_key_y, y1, key, mu=np.array([frequency_y_mu,amplitude_y_mu,half_energies_y_mu]),
-                                                sd=np.array([frequency_y_sd,amplitude_y_sd,half_energies_y_sd]))
-        #d = utilities.get_step_stride_frequency(global_peaks_grouped_by_key_y, y1, key,mu=np.array([0, 0, 0]),sd=np.array([1, 1, 1]))
+        #d = utilities.get_step_stride_frequency(global_peaks_grouped_by_key_y, y1, key, mu=np.array([frequency_y_mu,amplitude_y_mu,half_energies_y_mu]),
+        #                                        sd=np.array([frequency_y_sd,amplitude_y_sd,half_energies_y_sd]))
+        d = utilities.get_step_stride_frequency(global_peaks_grouped_by_key_y, y1, key,mu=np.array([0, 0, 0]),sd=np.array([1, 1, 1]))
         row.update(d)
         rows.append(row)
 
@@ -379,9 +379,9 @@ for idx,x in enumerate(X):
         row = {}
         row["recordId"] = recordIds[idx]
         row["axis"] = "z"
-        d = utilities.get_step_stride_frequency(global_peaks_grouped_by_key_z, z1, key, mu=np.array([frequency_z_mu,amplitude_z_mu,half_energies_z_mu]),
-                                                sd=np.array([frequency_z_sd,amplitude_z_sd,half_energies_z_sd]))
-        #d = utilities.get_step_stride_frequency(global_peaks_grouped_by_key_z, z1, key,mu=np.array([0,0,0]),sd=np.array([1,1,1]))
+        #d = utilities.get_step_stride_frequency(global_peaks_grouped_by_key_z, z1, key, mu=np.array([frequency_z_mu,amplitude_z_mu,half_energies_z_mu]),
+        #                                        sd=np.array([frequency_z_sd,amplitude_z_sd,half_energies_z_sd]))
+        d = utilities.get_step_stride_frequency(global_peaks_grouped_by_key_z, z1, key,mu=np.array([0,0,0]),sd=np.array([1,1,1]))
         row.update(d)
         rows.append(row)
     df = df.append(rows)
@@ -389,4 +389,4 @@ for idx,x in enumerate(X):
     if i > 100:
         break
 
-df.to_csv("Peaks-With-Normalization.csv",index=False)
+df.to_csv("Peaks-WithOut-Normalization.csv",index=False)
