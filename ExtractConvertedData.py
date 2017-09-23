@@ -29,6 +29,7 @@ def data_preparation(recordIds,start_index,end_index,filename):
                 accel_data = accel_data.append(data)
     if not accel_data.empty:
         accel_data.to_csv(filename,index=False)
+        print "Written for " + str(search_key)
 
 if __name__ == '__main__':
     arg_parser = argparse.ArgumentParser()
@@ -50,19 +51,19 @@ if __name__ == '__main__':
         groups[key] = ll
 
 
-    phones = df["phoneInfo"].unique()
+    phones = pd.read_csv(Constants.data_location + "phone_index.csv")
     phone_index = {}
 
-    for idx,phone in enumerate(phones):
-        if type(phone) is not float: #weird way of checking for nan
-            phone_index[idx] = phone
+    for idx,phone in phones.iterrows():
+        #if type(phone) is not float: #weird way of checking for nan
+        phone_index[phone["index"]] = phone["phone"]
 
     inv_phone_index = {v: k for k,v in phone_index.iteritems()}
-    labels = df["medTimepoint"].unique()
+    labels = pd.read_csv(Constants.data_location + "label_index.csv")
     label_index = {}
-    for idx,label in enumerate(labels):
-        if type(label) is not float: #weird way of checking for nan
-            label_index[idx] = label
+    for idx,label in labels.iterrows():
+        #if type(label) is not float: #weird way of checking for nan
+        label_index[label["index"]] = label["label"]
 
     inv_labels_index = {v: k for k,v in label_index.iteritems()}
 
@@ -73,5 +74,4 @@ if __name__ == '__main__':
     if groups.has_key(search_key):
         print "filename: " + filename
         data_preparation(grouped.get_group(search_key),start_index=int(args.start_index),end_index=int(args.end_index),filename=filename)
-        print "Written for " + str(search_key)
 
