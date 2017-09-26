@@ -9,7 +9,7 @@ N = 1600
 
 def interpolate_data(f,a,length):
     x = np.linspace(0,length,N)
-    ius = InterpolatedUnivariateSpline(f,a)
+    ius = InterpolatedUnivariateSpline(f,a,k=1)
     return (x,ius(x))
 
 if __name__ == "__main__":
