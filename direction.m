@@ -34,19 +34,19 @@
 %
 % I used a time frame to scan through the original accel y-axis, once the sum(y(t:t+frame)) > threshold, I decide this is non-default (while the default I defined is sum(y(t:t+frame)) < -threshold).
 
-% function direction(thisFolder, timeFrame, threshold, output_flipped_files)
+function direction(thisFolder, timeFrame, threshold, output_flipped_files)
 % e.g. direction('/Users/DoerLBH/Dropbox/git/DREAM_PDBiomarker/test_outbound', 20, 20, '/Users/DoerLBH/Dropbox/git/DREAM_PDBiomarker/test_output4.txt')
 % direction('/Users/DoerLBH/Dropbox/git/DREAM_PDBiomarker/test_csv', 20, 20, '/Users/DoerLBH/Dropbox/git/DREAM_PDBiomarker/test_output6.txt')
 %
-% test_file = '/Users/DoerLBH/Dropbox/git/DREAM_PDBiomarker/test_walk_outbound.json';
-test_folder = '/Users/DoerLBH/Dropbox/git/DREAM_PDBiomarker/test_csv';
-test_output_files = '/Users/DoerLBH/Dropbox/git/DREAM_PDBiomarker/test_output6.txt';
-test_timeFrame = 20;
-test_threshold = 20;
-thisFolder = test_folder;
-output_flipped_files = test_output_files;
-timeFrame = test_timeFrame;
-threshold = test_threshold;
+% % test_file = '/Users/DoerLBH/Dropbox/git/DREAM_PDBiomarker/test_walk_outbound.json';
+% test_folder = '/Users/DoerLBH/Dropbox/git/DREAM_PDBiomarker/test_csv';
+% test_output_files = '/Users/DoerLBH/Dropbox/git/DREAM_PDBiomarker/test_output6.txt';
+% test_timeFrame = 20;
+% test_threshold = 20;
+% thisFolder = test_folder;
+% output_flipped_files = test_output_files;
+% timeFrame = test_timeFrame;
+% threshold = test_threshold;
 % system(['echo >  ' output_flipped_files]);
 
 % fprintf('Processing folder %s\n', thisFolder);
@@ -148,6 +148,6 @@ if numberOfcsvFiles >= 1
 end
 % end
 
-% end
+end
 
 
