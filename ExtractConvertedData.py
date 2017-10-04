@@ -8,8 +8,8 @@ import argparse
 '''Call this method to prepare data per key'''
 def data_preparation(recordIds,start_index,end_index,filename):
     assert start_index < end_index
-    if end_index > len(recordIds):
-        end_index = len(recordIds) - 1
+    #if end_index > len(recordIds):
+    #    end_index = len(recordIds) - 1
     recordIds = recordIds.iloc[start_index:end_index]
     accel_data = pd.DataFrame(columns=["x", "y", "z"])
     for idx,recordId in recordIds.iterrows():
@@ -67,10 +67,14 @@ if __name__ == '__main__':
 
     inv_labels_index = {v: k for k,v in label_index.iteritems()}
 
-    filename = Constants.data_location + "phoneindex-" + str(inv_phone_index[args.phone_type]) + "_labelindex-" + str(inv_labels_index[args.label]) + ".csv"
+    phone = args.phone_type.replace(" ","_")
+    label = args.label.replace(" ","_")
+    filename = Constants.data_location + phone + "_" + label + "-" + args.start_index + "-" + args.end_index + ".csv"
+    #filename = Constants.data_location + "phoneindex-" + str(inv_phone_index[args.phone_type]) + "_labelindex-" + str(inv_labels_index[args.label]) + ".csv"
     #print search_key
     #print grouped.get_group(search_key)
-    print "FETCHING DATA for " + str(search_key) + "..."
+    print_str = "FETCHING DATA for " + str(search_key) + " start_index = " + args.start_index + " end_index = " + args.end_index
+    print print_str
     if groups.has_key(search_key):
         print "filename: " + filename
         data_preparation(grouped.get_group(search_key),start_index=int(args.start_index),end_index=int(args.end_index),filename=filename)

@@ -1,0 +1,4 @@
+qsub -cwd -l mem=8G,time=1:: -o /ifs/scratch/c2b2/ip_lab/ab4377/test_output.txt -e /ifs/scratch/c2b2/ip_lab/ab4377/error.txt -j y job.sh "iPhone 5s (GSM)" "Another time" 0 1000
+qsub -cwd -l mem=8G,time=1:: -o /ifs/scratch/c2b2/ip_lab/ab4377/test_output.txt -e /ifs/scratch/c2b2/ip_lab/ab4377/error.txt -j y job.sh "iPhone 5s (GSM)" "Another time" 1000 2000
+qsub -cwd -l mem=8G,time=1:: -o /ifs/scratch/c2b2/ip_lab/ab4377/test_output.txt -e /ifs/scratch/c2b2/ip_lab/ab4377/error.txt -j y job.sh "iPhone 5s (GSM)" "Another time" 2000 3000
+qsub -cwd -l mem=8G,time=1:: -o /ifs/scratch/c2b2/ip_lab/ab4377/test_output.txt -e /ifs/scratch/c2b2/ip_lab/ab4377/error.txt -j y job.sh "iPhone 5s (GSM)" "Another time" 3000 4000
